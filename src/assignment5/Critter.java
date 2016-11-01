@@ -55,7 +55,20 @@ public abstract class Critter {
 		myPackage = Critter.class.getPackage().toString().split(" ")[1];
 	}
 	
-	protected String look(int direction, boolean steps) {return "";}
+	protected String look(int direction, boolean steps) {
+		this.energy -= Params.look_energy_cost;
+		int amount = steps ? 2 : 1;
+		int[] lookPos = getNewPos(direction, amount);
+		int lookX = lookPos[0];
+		int lookY = lookPos[1];
+
+		for (Critter c : population) {
+			if (c.x_coord == lookX && c.y_coord == lookY) {
+				return c.toString();
+			}
+		}
+		return null;
+	}
 	
 	/* rest is unchanged from Project 4 */
 	
@@ -83,17 +96,13 @@ public abstract class Critter {
 	private static boolean areFighting = false; //If critters are currently in the fighting stage
 
 	/**
-	 * Move critter in the direction specified the amount of steps, using wrap around math
-	 * @param direction the direction to move
-	 * @param amount the number of steps to move
+	 * Gets a new position based on a direction and a number of steps
+	 * @param direction the direction
+	 * @param amount the amount of spaces
+	 * @return An array in the form [newX, newY]
 	 */
-	private void move(int direction, int amount) {
+	private int[] getNewPos(int direction, int amount) {
 		int newX = x_coord, newY = y_coord;
-
-		//Don't move if previously moved in this step
-		if (this.lastMoved == timeStep) {
-			return;
-		}
 
 		//Calculate new direction
 		switch (direction) {
@@ -129,6 +138,25 @@ public abstract class Critter {
 				//Something went wrong
 				break;
 		}
+
+		return new int[]{ newX, newY };
+	}
+	/**
+	 * Move critter in the direction specified the amount of steps, using wrap around math
+	 * @param direction the direction to move
+	 * @param amount the number of steps to move
+	 */
+	private void move(int direction, int amount) {
+
+		//Don't move if previously moved in this step
+		if (this.lastMoved == timeStep) {
+			return;
+		}
+
+		//Get new position
+		int[] newCoords = getNewPos(direction, amount);
+		int newX = newCoords[0];
+		int newY = newCoords[1];
 
 		//If fighting, cannot move to a spot otherwise occupied
 		if (areFighting) {

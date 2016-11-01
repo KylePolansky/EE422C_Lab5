@@ -40,7 +40,7 @@ public class Critter4 extends Critter{
 	@Override
 	public void doTimeStep() {
 		int rand1 = Critter.getRandomInt(100), rand2 = Critter.getRandomInt(100);
-
+		look(dir, true);
 		//This critter loves to run
 		if (rand1 < RUN_PERCENT) {
 			run();
@@ -59,7 +59,6 @@ public class Critter4 extends Critter{
 
 	@Override
 	public CritterShape viewShape() {
-		// TODO Auto-generated method stub
-		return null;
+		return CritterShape.STAR;
 	}
 }

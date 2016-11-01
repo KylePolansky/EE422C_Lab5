@@ -33,7 +33,6 @@ public class Critter3 extends Critter{
 
 	@Override
 	public CritterShape viewShape() {
-		// TODO Auto-generated method stub
-		return null;
+		return CritterShape.TRIANGLE;
 	}
 }

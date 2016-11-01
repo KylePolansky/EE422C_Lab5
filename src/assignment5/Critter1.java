@@ -38,8 +38,10 @@ public class Critter1 extends Critter{
 	
 	public boolean fight(String not_used) { 
 		if(getEnergy() < 100 || not_used.equals("@"))//only fight if it's algae or hungry
-		{return true;}
-		else{return false;}
+		{	look(dir, false);
+			return true;}
+		else{look(dir, false);
+			return false;}
 		
 	}
 
@@ -64,9 +66,9 @@ public class Critter1 extends Critter{
 
 	@Override
 	public CritterShape viewShape() {
-		// TODO Auto-generated method stub
-		return null;
+		return CritterShape.SQUARE;
 	}
+
 
 }
 

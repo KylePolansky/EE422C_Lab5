@@ -13,6 +13,12 @@
 
 package assignment5;
 
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Shape;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,8 +53,8 @@ public abstract class Critter {
 	public abstract CritterShape viewShape(); 
 	
 	private static String myPackage;
-	private	static List<Critter> population = new java.util.ArrayList<Critter>();
-	private static List<Critter> babies = new java.util.ArrayList<Critter>();
+	private	static List<Critter> population = new java.util.ArrayList<>();
+	private static List<Critter> babies = new java.util.ArrayList<>();
 
 	// Gets the package name.  This assumes that Critter and its subclasses are all in the same package.
 	static {
@@ -502,43 +508,106 @@ public abstract class Critter {
 	/**
 	 * Print out a grid of the world
 	 */
-	public static void displayWorld() {
-		System.out.print("+");
-		for(int i = 0; i < Params.world_width; i++)
-		{
-			System.out.print("-");
-		}
-		System.out.println("+");
-		for(int i = 0; i < Params.world_height; i++)
-		{
-			System.out.print("|");
-			for(int j = 0; j < Params.world_width; j++)
-			{
-				int printFlag = 0;
-				for(int k = 0; k < population.size(); k++)
-				{
-					if(population.get(k).y_coord == i && population.get(k).x_coord == j)
-					{
-						System.out.print(population.get(k).toString());
-						printFlag = 1;
-						break; // breaks out of this one for-loop
-					}
 
-				}
-				if(printFlag == 0)
-				{
-					System.out.print(" ");
+	private static void canvasDrawLines() {
+		int h = Params.world_height;
+		int w = Params.world_width;
+		GraphicsContext gc = canvas.getGraphicsContext2D();
+		gc.setStroke(Color.WHITE);
+
+		for (int x = 1; x < h; x++) {
+			int pos = (int) Math.round(x * (canvas.getHeight() / h));
+			gc.strokeLine(0, pos, canvas.getWidth() - 1, pos);
+		}
+
+		for (int x = 1; x < w; x++) {
+			int pos = (int) Math.round(x * (canvas.getWidth() / w));
+			gc.strokeLine(pos, 0, pos, canvas.getHeight() - 1);
+		}
+	}
+
+	private static void canvasDrawCritters() {
+		int h = Params.world_height;
+		int w = Params.world_width;
+		GraphicsContext gc = canvas.getGraphicsContext2D();
+		for (int x = 0; x < Params.world_width; x++) {
+			for (int y = 0; y < Params.world_height; y++) {
+
+				//Find critters with matching coordinates
+				for(Critter c : population) {
+					if (c.x_coord == x && c.y_coord == y) {
+						//Draw Critter
+						gc.setFill(c.viewFillColor());
+						gc.setStroke(c.viewOutlineColor());
+						canvasDrawShape(x,y,c.viewShape(), gc);
+
+						//Stop looking through critters at this position
+						break;
+					}
 				}
 			}
-			System.out.println("|");
 		}
-		System.out.print("+");
-		for(int i = 0; i < Params.world_width; i++)
-		{
-			System.out.print("-");
-		}
-		System.out.print("+");
-		System.out.println();
+	}
 
+	/**
+	 * Returns a bounding box for specific coordinates, inside the bounding lines
+	 * @param worldXPos the x coordinate of the object in the world
+	 * @param worldYPos the y coordinate of the object in the world
+	 * @return the coordinates in the format: { top, bottom, left, right}
+	 */
+	private static int[] canvasGetBoundingBox(int worldXPos, int worldYPos) {
+		int top = (int) Math.round(worldYPos * (canvas.getHeight() / Params.world_height)) + 1;
+		int bot = (int) Math.round((worldYPos + 1) * (canvas.getHeight() / Params.world_height)) - 1;
+		int left = (int) Math.round(worldXPos * (canvas.getWidth() / Params.world_width)) + 1;
+		int right = (int) Math.round((worldXPos + 1) * (canvas.getWidth() / Params.world_width)) - 1;
+		return new int[] { top, bot, left, right};
+	}
+
+	private static void canvasDrawShape(int worldXPos, int worldYPos, CritterShape shape,
+										GraphicsContext gc) {
+		int[] boundingBox = canvasGetBoundingBox(worldXPos, worldYPos);
+		int top = boundingBox[0];
+		int bot = boundingBox[1];
+		int left = boundingBox[2];
+		int right = boundingBox[3];
+		int xMid = (left + right) / 2;
+		int yMid = (top + bot) / 2;
+		int height = bot - top;
+		int width = right - left;
+
+		switch (shape) {
+			case CIRCLE:
+				gc.fillOval(left, top, width, height);
+				gc.strokeOval(left, top, width, height);
+				break;
+			case DIAMOND:
+				gc.fillPolygon(new double[]{xMid, right, xMid, left}, new double[]{top, yMid, bot, yMid}, 4);
+				gc.strokePolygon(new double[]{xMid, right, xMid, left}, new double[]{top, yMid, bot, yMid}, 4);
+				break;
+			case SQUARE:
+				gc.fillRect(left, top, width, height);
+				gc.strokeRect(left, top, width, height);
+				break;
+			case STAR:
+				int xLeftThird = left + (width/3);
+				int xLeftFifth = left + (width/5);
+				int xRightThird = right - (width/3);
+				int xRightFifth = right - (width/5);
+				int yTopThird = top + (height/3);
+				int yBotThird = bot - (height/3);
+				gc.fillPolygon(new double[]{xMid, xRightThird, right, xRightThird, xRightFifth, xMid, xLeftFifth, xLeftThird, left, xLeftThird},
+						new double[]{top, yTopThird, yTopThird, yMid, bot, yBotThird, bot, yMid, yTopThird, yTopThird}, 10);
+				break;
+			case TRIANGLE:
+				gc.fillPolygon(new double[]{xMid, right, left}, new double[]{top, bot, bot}, 3);
+				gc.strokePolygon(new double[]{xMid, right, left}, new double[]{top, bot, bot}, 3);
+				break;
+		}
+	}
+
+	public static Canvas canvas;
+	public static void displayWorld() {
+		canvasDrawLines();
+		canvasDrawCritters();
 	}
 }

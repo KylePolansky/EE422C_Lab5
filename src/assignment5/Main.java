@@ -93,6 +93,7 @@ public class Main extends Application {
         root.add(btnFpsDown, 2, 11);
         Scene scene = new Scene(root, 600, 600);
         buttonToCode();
+		scene.getStylesheets().add(Main.class.getResource("theme.css").toExternalForm());
         primaryStage.setScene(scene);
         primaryStage.show();
     }

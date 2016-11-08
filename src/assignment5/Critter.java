@@ -13,11 +13,8 @@
 
 package assignment5;
 
-import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
-import javafx.scene.shape.Shape;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -512,24 +509,24 @@ public abstract class Critter {
 	private static void canvasDrawLines() {
 		int h = Params.world_height;
 		int w = Params.world_width;
-		GraphicsContext gc = canvas.getGraphicsContext2D();
-		gc.setStroke(Color.WHITE);
+		GraphicsContext gc = Main.worldCanvas.getGraphicsContext2D();
+		gc.setStroke(Color.rgb(255,255,255));
 
 		for (int x = 1; x < h; x++) {
-			int pos = (int) Math.round(x * (canvas.getHeight() / h));
-			gc.strokeLine(0, pos, canvas.getWidth() - 1, pos);
+			int pos = (int) Math.round(x * (Main.worldCanvas.getHeight() / h));
+			gc.strokeLine(0, pos, Main.worldCanvas.getWidth() - 1, pos);
 		}
 
 		for (int x = 1; x < w; x++) {
-			int pos = (int) Math.round(x * (canvas.getWidth() / w));
-			gc.strokeLine(pos, 0, pos, canvas.getHeight() - 1);
+			int pos = (int) Math.round(x * (Main.worldCanvas.getWidth() / w));
+			gc.strokeLine(pos, 0, pos, Main.worldCanvas.getHeight() - 1);
 		}
 	}
 
 	private static void canvasDrawCritters() {
 		int h = Params.world_height;
 		int w = Params.world_width;
-		GraphicsContext gc = canvas.getGraphicsContext2D();
+		GraphicsContext gc = Main.worldCanvas.getGraphicsContext2D();
 		for (int x = 0; x < Params.world_width; x++) {
 			for (int y = 0; y < Params.world_height; y++) {
 
@@ -556,10 +553,10 @@ public abstract class Critter {
 	 * @return the coordinates in the format: { top, bottom, left, right}
 	 */
 	private static int[] canvasGetBoundingBox(int worldXPos, int worldYPos) {
-		int top = (int) Math.round(worldYPos * (canvas.getHeight() / Params.world_height)) + 1;
-		int bot = (int) Math.round((worldYPos + 1) * (canvas.getHeight() / Params.world_height)) - 1;
-		int left = (int) Math.round(worldXPos * (canvas.getWidth() / Params.world_width)) + 1;
-		int right = (int) Math.round((worldXPos + 1) * (canvas.getWidth() / Params.world_width)) - 1;
+		int top = (int) Math.round(worldYPos * (Main.worldCanvas.getHeight() / Params.world_height)) + 1;
+		int bot = (int) Math.round((worldYPos + 1) * (Main.worldCanvas.getHeight() / Params.world_height)) - 1;
+		int left = (int) Math.round(worldXPos * (Main.worldCanvas.getWidth() / Params.world_width)) + 1;
+		int right = (int) Math.round((worldXPos + 1) * (Main.worldCanvas.getWidth() / Params.world_width)) - 1;
 		return new int[] { top, bot, left, right};
 	}
 
@@ -605,9 +602,10 @@ public abstract class Critter {
 		}
 	}
 
-	public static Canvas canvas;
 	public static void displayWorld() {
-		canvasDrawLines();
+		for (int x = 0; x < 5; x++) {
+			canvasDrawLines(); //Don't know why this needs to be done 5 times, but otherwise isn't bright enough
+		}
 		canvasDrawCritters();
 	}
 }

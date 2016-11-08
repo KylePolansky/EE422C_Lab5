@@ -13,6 +13,9 @@
 
 package assignment5;
 
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,15 +50,28 @@ public abstract class Critter {
 	public abstract CritterShape viewShape(); 
 	
 	private static String myPackage;
-	private	static List<Critter> population = new java.util.ArrayList<Critter>();
-	private static List<Critter> babies = new java.util.ArrayList<Critter>();
+	private	static List<Critter> population = new java.util.ArrayList<>();
+	private static List<Critter> babies = new java.util.ArrayList<>();
 
 	// Gets the package name.  This assumes that Critter and its subclasses are all in the same package.
 	static {
 		myPackage = Critter.class.getPackage().toString().split(" ")[1];
 	}
 	
-	protected String look(int direction, boolean steps) {return "";}
+	protected String look(int direction, boolean steps) {
+		this.energy -= Params.look_energy_cost;
+		int amount = steps ? 2 : 1;
+		int[] lookPos = getNewPos(direction, amount);
+		int lookX = lookPos[0];
+		int lookY = lookPos[1];
+
+		for (Critter c : population) {
+			if (c.x_coord == lookX && c.y_coord == lookY) {
+				return c.toString();
+			}
+		}
+		return null;
+	}
 	
 	/* rest is unchanged from Project 4 */
 	
@@ -83,17 +99,13 @@ public abstract class Critter {
 	private static boolean areFighting = false; //If critters are currently in the fighting stage
 
 	/**
-	 * Move critter in the direction specified the amount of steps, using wrap around math
-	 * @param direction the direction to move
-	 * @param amount the number of steps to move
+	 * Gets a new position based on a direction and a number of steps
+	 * @param direction the direction
+	 * @param amount the amount of spaces
+	 * @return An array in the form [newX, newY]
 	 */
-	private void move(int direction, int amount) {
+	private int[] getNewPos(int direction, int amount) {
 		int newX = x_coord, newY = y_coord;
-
-		//Don't move if previously moved in this step
-		if (this.lastMoved == timeStep) {
-			return;
-		}
 
 		//Calculate new direction
 		switch (direction) {
@@ -129,6 +141,25 @@ public abstract class Critter {
 				//Something went wrong
 				break;
 		}
+
+		return new int[]{ newX, newY };
+	}
+	/**
+	 * Move critter in the direction specified the amount of steps, using wrap around math
+	 * @param direction the direction to move
+	 * @param amount the number of steps to move
+	 */
+	private void move(int direction, int amount) {
+
+		//Don't move if previously moved in this step
+		if (this.lastMoved == timeStep) {
+			return;
+		}
+
+		//Get new position
+		int[] newCoords = getNewPos(direction, amount);
+		int newX = newCoords[0];
+		int newY = newCoords[1];
 
 		//If fighting, cannot move to a spot otherwise occupied
 		if (areFighting) {
@@ -474,43 +505,107 @@ public abstract class Critter {
 	/**
 	 * Print out a grid of the world
 	 */
-	public static void displayWorld() {
-		System.out.print("+");
-		for(int i = 0; i < Params.world_width; i++)
-		{
-			System.out.print("-");
-		}
-		System.out.println("+");
-		for(int i = 0; i < Params.world_height; i++)
-		{
-			System.out.print("|");
-			for(int j = 0; j < Params.world_width; j++)
-			{
-				int printFlag = 0;
-				for(int k = 0; k < population.size(); k++)
-				{
-					if(population.get(k).y_coord == i && population.get(k).x_coord == j)
-					{
-						System.out.print(population.get(k).toString());
-						printFlag = 1;
-						break; // breaks out of this one for-loop
-					}
 
-				}
-				if(printFlag == 0)
-				{
-					System.out.print(" ");
+	private static void canvasDrawLines() {
+		int h = Params.world_height;
+		int w = Params.world_width;
+		GraphicsContext gc = Main.worldCanvas.getGraphicsContext2D();
+		gc.setStroke(Color.rgb(255,255,255));
+
+		for (int x = 1; x < h; x++) {
+			int pos = (int) Math.round(x * (Main.worldCanvas.getHeight() / h));
+			gc.strokeLine(0, pos, Main.worldCanvas.getWidth() - 1, pos);
+		}
+
+		for (int x = 1; x < w; x++) {
+			int pos = (int) Math.round(x * (Main.worldCanvas.getWidth() / w));
+			gc.strokeLine(pos, 0, pos, Main.worldCanvas.getHeight() - 1);
+		}
+	}
+
+	private static void canvasDrawCritters() {
+		int h = Params.world_height;
+		int w = Params.world_width;
+		GraphicsContext gc = Main.worldCanvas.getGraphicsContext2D();
+		for (int x = 0; x < Params.world_width; x++) {
+			for (int y = 0; y < Params.world_height; y++) {
+
+				//Find critters with matching coordinates
+				for(Critter c : population) {
+					if (c.x_coord == x && c.y_coord == y) {
+						//Draw Critter
+						gc.setFill(c.viewFillColor());
+						gc.setStroke(c.viewOutlineColor());
+						canvasDrawShape(x,y,c.viewShape(), gc);
+
+						//Stop looking through critters at this position
+						break;
+					}
 				}
 			}
-			System.out.println("|");
 		}
-		System.out.print("+");
-		for(int i = 0; i < Params.world_width; i++)
-		{
-			System.out.print("-");
-		}
-		System.out.print("+");
-		System.out.println();
+	}
 
+	/**
+	 * Returns a bounding box for specific coordinates, inside the bounding lines
+	 * @param worldXPos the x coordinate of the object in the world
+	 * @param worldYPos the y coordinate of the object in the world
+	 * @return the coordinates in the format: { top, bottom, left, right}
+	 */
+	private static int[] canvasGetBoundingBox(int worldXPos, int worldYPos) {
+		int top = (int) Math.round(worldYPos * (Main.worldCanvas.getHeight() / Params.world_height)) + 1;
+		int bot = (int) Math.round((worldYPos + 1) * (Main.worldCanvas.getHeight() / Params.world_height)) - 1;
+		int left = (int) Math.round(worldXPos * (Main.worldCanvas.getWidth() / Params.world_width)) + 1;
+		int right = (int) Math.round((worldXPos + 1) * (Main.worldCanvas.getWidth() / Params.world_width)) - 1;
+		return new int[] { top, bot, left, right};
+	}
+
+	private static void canvasDrawShape(int worldXPos, int worldYPos, CritterShape shape,
+										GraphicsContext gc) {
+		int[] boundingBox = canvasGetBoundingBox(worldXPos, worldYPos);
+		int top = boundingBox[0];
+		int bot = boundingBox[1];
+		int left = boundingBox[2];
+		int right = boundingBox[3];
+		int xMid = (left + right) / 2;
+		int yMid = (top + bot) / 2;
+		int height = bot - top;
+		int width = right - left;
+
+		switch (shape) {
+			case CIRCLE:
+				gc.fillOval(left, top, width, height);
+				gc.strokeOval(left, top, width, height);
+				break;
+			case DIAMOND:
+				gc.fillPolygon(new double[]{xMid, right, xMid, left}, new double[]{top, yMid, bot, yMid}, 4);
+				gc.strokePolygon(new double[]{xMid, right, xMid, left}, new double[]{top, yMid, bot, yMid}, 4);
+				break;
+			case SQUARE:
+				gc.fillRect(left, top, width, height);
+				gc.strokeRect(left, top, width, height);
+				break;
+			case STAR:
+				int xLeftThird = left + (width/3);
+				int xLeftFifth = left + (width/5);
+				int xRightThird = right - (width/3);
+				int xRightFifth = right - (width/5);
+				int yTopThird = top + (height/3);
+				int yBotThird = bot - (height/3);
+				gc.fillPolygon(new double[]{xMid, xRightThird, right, xRightThird, xRightFifth, xMid, xLeftFifth, xLeftThird, left, xLeftThird},
+						new double[]{top, yTopThird, yTopThird, yMid, bot, yBotThird, bot, yMid, yTopThird, yTopThird}, 10);
+				break;
+			case TRIANGLE:
+				gc.fillPolygon(new double[]{xMid, right, left}, new double[]{top, bot, bot}, 3);
+				gc.strokePolygon(new double[]{xMid, right, left}, new double[]{top, bot, bot}, 3);
+				break;
+		}
+	}
+
+	public static void displayWorld() {
+		for (int x = 0; x < 5; x++) {
+			canvasDrawLines(); //Don't know why this needs to be done 5 times, but otherwise isn't bright enough
+		}
+		canvasDrawCritters();
 	}
 }
